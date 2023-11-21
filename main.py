@@ -277,6 +277,7 @@ def prep_content(stats: dict[str, Any], /):
     """WakaReadme Prepare Markdown.
 
     Prepared markdown content from the fetched statistics.
+    ```
     """
     logger.debug("Making contents")
     contents = ""
@@ -302,9 +303,21 @@ def prep_content(stats: dict[str, Any], /):
         contents += "No activity tracked"
         return contents.rstrip("\n")
 
-    # make lang table
-    table_header = "| Language | Time | Percentage |\n| --- | --- | --- |\n"
-    table_rows = ""
+    # make lang content
+    pad_len = len(
+        # comment if it feels way computationally expensive
+        max((str(lng["name"]) for lng in lang_info), key=len)
+        # and then do not for get to set `pad_len` to say 13 :)
+    )
+    language_count, stop_at_other = int(
+        wk_i.language_count), bool(wk_i.stop_at_other)
+    if language_count == 0 and not wk_i.stop_at_other:
+        logger.debug(
+            "Set INPUT_LANG_COUNT to -1 to retrieve all language"
+            + " or specify a positive number (ie. above 0)"
+        )
+        return contents.rstrip("\n")
+
     ignored_languages = set[str](igl.lower()
                                  for igl in wk_i.ignored_languages.strip().split())
     for idx, lang in enumerate(lang_info):
@@ -315,11 +328,18 @@ def prep_content(stats: dict[str, Any], /):
         lang_ratio = float(lang["percent"])
         lang_bar = make_graph(wk_i.block_style, lang_ratio,
                               wk_i.graph_length, lang_name)
-        table_rows += f"| {lang_name} | {lang_time} | {lang_ratio:.2f}% |\n"
-        if wk_i.language_count != -1 and idx + 1 >= wk_i.language_count:
+        contents += (
+            f"{lang_name.ljust(pad_len)}   "
+            + f"{lang_time: <16}{lang_bar}   "
+            + f"{lang_ratio:.2f}".zfill(5)
+            + " %\n"
+        )
+        if language_count == -1:
+            continue
+        if stop_at_other and (lang_name == "Other"):
             break
-
-    contents += table_header + table_rows
+        if idx + 1 >= language_count > 0:  # idx starts at 0
+            break
 
     logger.debug("Contents were made\n")
     return contents.rstrip("\n")
