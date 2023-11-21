@@ -359,7 +359,7 @@ def fetch_stats():
         resp_message, fake_ua = "", cryptogenic.choice(
             [str(fake.user_agent()) for _ in range(5)])
         # making a request
-        if not (
+        if (
             resp := rq_get(
                 url=f"{str(wk_i.api_base_url).rstrip('/')}/v1/users/current/stats/{wk_i.time_range}",
                 headers={
@@ -368,18 +368,18 @@ def fetch_stats():
                 },
                 timeout=(30.0 * (5 - attempts)),
             )
-        ).status_code in [200, 202]:
+        ).status_code != 200: 
             resp_message += f" • {conn_info}" if (
                 conn_info := resp.json().get("message")) else ""
         logger.debug(
             f"API response #{5 - attempts}: {resp.status_code} •" +
             f" {resp.reason}{resp_message}"
         )
-        if resp.status_code in [200, 202] and (statistic := resp.json()):
+        if resp.status_code == 200 and (statistic := resp.json()):
             logger.debug("Fetched WakaTime statistics")
             break
         logger.debug(f"Retrying in {30 * (5 - attempts )}s ...")
-        sleep(30 * (5 - attempts))
+        sleep(30 * 1000 * (5 - attempts))
         attempts -= 1
 
     if err := (statistic.get("error") or statistic.get("errors")):
