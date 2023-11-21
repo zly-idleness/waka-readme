@@ -129,7 +129,8 @@ class WakaInput:
     # # required
     gh_token: str | None = os.getenv("INPUT_GH_TOKEN")
     waka_key: str | None = os.getenv("INPUT_WAKATIME_API_KEY")
-    api_base_url: str | None = os.getenv("INPUT_API_BASE_URL", "https://wakatime.com/api")
+    api_base_url: str | None = os.getenv(
+        "INPUT_API_BASE_URL", "https://wakatime.com/api")
     repository: str | None = os.getenv("INPUT_REPOSITORY")
     # # depends
     commit_message: str = os.getenv(
@@ -167,7 +168,8 @@ class WakaInput:
             return False
 
         if len(self.commit_message) < 1:
-            logger.error("Commit message length must be greater than 1 character long")
+            logger.error(
+                "Commit message length must be greater than 1 character long")
             return False
 
         try:
@@ -307,7 +309,8 @@ def prep_content(stats: dict[str, Any], /):
         max((str(lng["name"]) for lng in lang_info), key=len)
         # and then do not for get to set `pad_len` to say 13 :)
     )
-    language_count, stop_at_other = int(wk_i.language_count), bool(wk_i.stop_at_other)
+    language_count, stop_at_other = int(
+        wk_i.language_count), bool(wk_i.stop_at_other)
     if language_count == 0 and not wk_i.stop_at_other:
         logger.debug(
             "Set INPUT_LANG_COUNT to -1 to retrieve all language"
@@ -315,14 +318,16 @@ def prep_content(stats: dict[str, Any], /):
         )
         return contents.rstrip("\n")
 
-    ignored_languages = set[str](igl.lower() for igl in wk_i.ignored_languages.strip().split())
+    ignored_languages = set[str](igl.lower()
+                                 for igl in wk_i.ignored_languages.strip().split())
     for idx, lang in enumerate(lang_info):
         lang_name = str(lang["name"])
         if ignored_languages and lang_name.lower() in ignored_languages:
             continue
         lang_time = str(lang["text"]) if wk_i.show_time else ""
         lang_ratio = float(lang["percent"])
-        lang_bar = make_graph(wk_i.block_style, lang_ratio, wk_i.graph_length, lang_name)
+        lang_bar = make_graph(wk_i.block_style, lang_ratio,
+                              wk_i.graph_length, lang_name)
         contents += (
             f"{lang_name.ljust(pad_len)}   "
             + f"{lang_time: <16}{lang_bar}   "
@@ -348,11 +353,13 @@ def fetch_stats():
     attempts = 4
     statistic: dict[str, dict[str, Any]] = {}
     encoded_key = str(b64encode(bytes(str(wk_i.waka_key), "utf-8")), "utf-8")
-    logger.debug(f"Pulling WakaTime stats from {' '.join(wk_i.time_range.split('_'))}")
+    logger.debug(
+        f"Pulling WakaTime stats from {' '.join(wk_i.time_range.split('_'))}")
     while attempts > 0:
-        resp_message, fake_ua = "", cryptogenic.choice([str(fake.user_agent()) for _ in range(5)])
+        resp_message, fake_ua = "", cryptogenic.choice(
+            [str(fake.user_agent()) for _ in range(5)])
         # making a request
-        if (
+        if not (
             resp := rq_get(
                 url=f"{str(wk_i.api_base_url).rstrip('/')}/v1/users/current/stats/{wk_i.time_range}",
                 headers={
@@ -361,12 +368,14 @@ def fetch_stats():
                 },
                 timeout=(30.0 * (5 - attempts)),
             )
-        ).status_code != 200:
-            resp_message += f" • {conn_info}" if (conn_info := resp.json().get("message")) else ""
+        ).status_code in [200, 202]:
+            resp_message += f" • {conn_info}" if (
+                conn_info := resp.json().get("message")) else ""
         logger.debug(
-            f"API response #{5 - attempts}: {resp.status_code} •" + f" {resp.reason}{resp_message}"
+            f"API response #{5 - attempts}: {resp.status_code} •" +
+            f" {resp.reason}{resp_message}"
         )
-        if resp.status_code == 200 and (statistic := resp.json()):
+        if resp.status_code in [200, 202] and (statistic := resp.json()):
             logger.debug("Fetched WakaTime statistics")
             break
         logger.debug(f"Retrying in {30 * (5 - attempts )}s ...")
@@ -388,7 +397,8 @@ def churn(old_readme: str, /):
     """
     # check if placeholder pattern exists in readme
     if not re.findall(wk_i.waka_block_pattern, old_readme):
-        logger.warning(f"Cannot find `{wk_i.waka_block_pattern}` pattern in readme")
+        logger.warning(
+            f"Cannot find `{wk_i.waka_block_pattern}` pattern in readme")
         return None
     # getting contents
     if not (waka_stats := fetch_stats()):
@@ -437,7 +447,8 @@ def qualify_target(gh_repo: Repository.Repository):
     if wk_i.target_path != "NOT_SET":
         target = gh_repo.get_contents(
             path=wk_i.target_path,
-            ref=gh_branch if isinstance(gh_branch, str) else gh_branch.commit.sha,
+            ref=gh_branch if isinstance(
+                gh_branch, str) else gh_branch.commit.sha,
         )
 
     if isinstance(target, list):
@@ -445,7 +456,8 @@ def qualify_target(gh_repo: Repository.Repository):
 
     committer, author = None, None
     if wk_i.committer_name != "NOT_SET" and wk_i.committer_email != "NOT_SET":
-        committer = InputGitAuthor(name=wk_i.committer_name, email=wk_i.committer_email)
+        committer = InputGitAuthor(
+            name=wk_i.committer_name, email=wk_i.committer_email)
     if wk_i.author_name != "NOT_SET" and wk_i.author_email != "NOT_SET":
         author = InputGitAuthor(name=wk_i.author_name, email=wk_i.author_email)
 
