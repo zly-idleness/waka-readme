@@ -368,7 +368,7 @@ def fetch_stats():
                 },
                 timeout=(30.0 * (5 - attempts)),
             )
-        ).status_code != 200: 
+        ).status_code != 200:
             resp_message += f" • {conn_info}" if (
                 conn_info := resp.json().get("message")) else ""
         logger.debug(
@@ -379,7 +379,7 @@ def fetch_stats():
             logger.debug("Fetched WakaTime statistics")
             break
         logger.debug(f"Retrying in {30 * (5 - attempts )}s ...")
-        sleep(30 * 1000 * (5 - attempts))
+        sleep(30 * (5 - attempts))
         attempts -= 1
 
     if err := (statistic.get("error") or statistic.get("errors")):
